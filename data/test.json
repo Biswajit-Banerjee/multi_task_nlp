@@ -634,7 +634,7 @@
             "X",
             "X"
         ],
-        "intent": "day_name"
+        "intent": "Schedule"
     },
     {
         "text": "what are the flights from tacoma to san jose",
@@ -669,7 +669,7 @@
             "X",
             "X"
         ],
-        "intent": "day_name"
+        "intent": "Schedule"
     },
     {
         "text": "what are the flights from tacoma to san jose",
@@ -4081,7 +4081,7 @@
             "X",
             "Location"
         ],
-        "intent": "airfare+flight"
+        "intent": "FlightInfo"
     },
     {
         "text": "what is fare code m",
