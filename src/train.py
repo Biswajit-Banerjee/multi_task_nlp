@@ -125,8 +125,8 @@ def validate(model, loader, device):
 
 def train_model(train_ds, val_ds, model, epochs=3):
     
-    train_loader = DataLoader(train_ds, batch_size=64, shuffle=True, collate_fn =collate_batch)
-    val_loader   = DataLoader(val_ds, batch_size  =32, shuffle=False, collate_fn=collate_batch)
+    train_loader = DataLoader(train_ds, batch_size=128, shuffle=True, collate_fn=collate_batch)
+    val_loader   = DataLoader(val_ds, batch_size  =64, shuffle=False, collate_fn=collate_batch)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)

@@ -76,12 +76,15 @@ def plot_metrics(losses_data):
     # Global legend and title
     fig.legend(
         ['Train', 'Validation'],
-        loc='lower center',
-        ncol=1,
-        frameon=False,
-        fontsize='large'
+        loc='upper center',
+        ncol=2,
+        frameon=True,
+        fontsize='x-large'
     )
-    fig.suptitle('Training vs Validation Metrics', fontsize=16)
+    # fig.suptitle('Training vs Validation Metrics', fontsize=16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     plt.show()
+    
+    
+

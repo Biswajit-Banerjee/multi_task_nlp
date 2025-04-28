@@ -106,7 +106,7 @@ INTENT_MAPPER = {
 
 SLOT2ID = {s: i for i, s in enumerate(set(ENTITY_MAPPER.values()), start=1)}
 INTENT2ID = {s: i for i, s in enumerate(set(INTENT_MAPPER.values()))}
-pad_tag = "<PAD>"
+pad_tag = "[PAD]"
 SLOT2ID[pad_tag] = 0
 
 class ATISDataset(Dataset):
@@ -139,27 +139,30 @@ class ATISDataset(Dataset):
         text = self.texts[idx]
         tags = self.slot_tags[idx]
         intent = self.intent_ids[idx]
+
         enc = self.tokenizer(
             text,
             padding="max_length",
             truncation=True,
             max_length=self.max_len,
             return_attention_mask=True,
-            return_tensors="pt"
+            return_tensors="pt",
+            add_special_tokens=False
         )
         input_ids = enc.input_ids.squeeze(0)
         attention_mask = enc.attention_mask.squeeze(0)
         
         # Align tags (naive one-tag-per-word); pad/truncate
-        tag_ids = [self.slot2id.get(t, self.slot2id["<PAD>"]) for t in tags]
+        tag_ids = [self.slot2id.get(t, self.slot2id["[PAD]"]) for t in tags]
         if len(tag_ids) < self.max_len:
-            tag_ids += [self.slot2id["<PAD>"]] * (self.max_len - len(tag_ids))
+            tag_ids += [self.slot2id["[PAD]"]] * (self.max_len - len(tag_ids))
         else:
             tag_ids = tag_ids[: self.max_len]
             
         slot_labels = torch.tensor(tag_ids, dtype=torch.long)
         intent_label = torch.tensor(intent, dtype=torch.long)
         return {
+            "gt": [intent, text, tags],
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "intent_label": intent_label,
