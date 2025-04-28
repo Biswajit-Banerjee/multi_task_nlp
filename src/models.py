@@ -4,30 +4,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoModel
 
+
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
-        
+
         # pos and i (dimension)
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, d_model, 2, dtype=torch.float) *
-            -(math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2, dtype=torch.float)
+            * -(math.log(10000.0) / d_model)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(1)  # (max_len, 1, d_model)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: Tensor of shape (seq_len, batch_size, d_model)
         """
-        x = x + self.pe[:x.size(0)]
+        x = x + self.pe[: x.size(0)]
         return self.dropout(x)
+
 
 class CustomEncoder(nn.Module):
     def __init__(
@@ -38,7 +40,7 @@ class CustomEncoder(nn.Module):
         num_layers: int = 6,
         dim_feedforward: int = 2048,
         dropout: float = 0.1,
-        max_len: int = 100
+        max_len: int = 512,
     ):
         super().__init__()
         self.d_model = d_model
@@ -56,8 +58,7 @@ class CustomEncoder(nn.Module):
         )
         # stack N such layers
         self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer,
-            num_layers=num_layers
+            encoder_layer, num_layers=num_layers
         )
 
         self._reset_parameters()
@@ -82,24 +83,21 @@ class CustomEncoder(nn.Module):
             mask = (attention_mask == 0)
         else:
             mask = None
-            
+
         # embed tokens and scale
         x = self.embedding(input_ids) * math.sqrt(self.d_model)
         # add positional encoding
         x = self.pos_encoder(x)
-        
+
         # swap to (T, B, D)
         x = x.transpose(0, 1)
-        
+
         # pass through the stack of encoder layers
-        output = self.transformer_encoder(
-            x,
-            src_key_padding_mask=mask
-        )
-        
+        output = self.transformer_encoder(x, src_key_padding_mask=mask)
+
         # (B, T, D)
         output = output.transpose(0, 1)
-        
+
         # mimic output compatibility with HF
         class BackboneOutput:
             def __init__(self, last_hidden_state):
@@ -113,13 +111,13 @@ class SentenceEncoder(nn.Module):
     Wraps a transformer backbone and mean-pooling layer to produce sentence embeddings.
     """
 
-    def __init__(self, backbone_name: str = "bert-base-uncased"):
+    def __init__(self, backbone_name: str = "bert-base-uncased", embedding_dim=512):
         super().__init__()
-        
+
         if backbone_name != "custom":
             self.backbone = AutoModel.from_pretrained(backbone_name)
         else:
-            self.backbone = CustomEncoder()
+            self.backbone = CustomEncoder(d_model=embedding_dim)
 
     def forward(self, input_ids, attention_mask):
         # Transformer outputs last_hidden_state of shape [B, T, H]
@@ -139,23 +137,25 @@ class ATISMultiTaskModel(nn.Module):
     def __init__(
         self,
         encoder: SentenceEncoder,
-        hidden_dim: int = 768,
         n_intents: int = 8,
         n_slots: int = 10,
     ):
         super().__init__()
         self.encoder = encoder
         
+        # extract d_model
+        hidden_dim = encoder.backbone.embedding.embedding_dim 
+
         # projection for intent
         self.intent_head = nn.Linear(hidden_dim, n_intents)
-        # projection for entities/slots 
+        # projection for entities/slots
         self.slot_head = nn.Linear(hidden_dim, n_slots)
 
     def forward(self, input_ids, attention_mask):
         # Sentence-level embedding for intent
         sent_emb = self.encoder(input_ids, attention_mask)  # [B, H]
         logits_intent = self.intent_head(sent_emb)  # [B, n_intents]
-        
+
         # Token-level representations for entities
         token_outputs = self.encoder.backbone(
             input_ids=input_ids, attention_mask=attention_mask
