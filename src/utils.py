@@ -15,7 +15,6 @@ def compute_slot_f1(preds, labels, mask):
     
     return f1_score(y_true, y_pred, average="micro")
 
-import matplotlib.pyplot as plt
 
 def plot_metrics(losses_data, title=""):
     # Extract epoch & series
@@ -91,3 +90,64 @@ def plot_metrics(losses_data, title=""):
     
     
 
+def plot_comparison_metrics_subplot(transfer_metrics, finetune_metrics, custom_metrics):
+    """
+    Plot train/validation metrics for three models in a 2x2 subplot:
+        - Transfer-Learn
+        - Fine-Tune
+        - Custom
+    """
+    models = {
+        'Transfer-Learn': transfer_metrics,
+        'Fine-Tune':      finetune_metrics,
+        'Custom':         custom_metrics
+    }
+    colors = {
+        'Transfer-Learn': 'blue',
+        'Fine-Tune':      'orange',
+        'Custom':         'green'
+    }
+    line_styles = {'train': '-', 'val': '--'}
+    
+    metrics_info = [
+        ('Intent Loss',      'train_intent_loss', 'val_intent_loss', 'Loss'),
+        ('Entity Loss',      'train_entity_loss', 'val_entity_loss', 'Loss'),
+        ('Intent Accuracy',  'train_intent_acc',  'val_intent_acc',  'Accuracy'),
+        ('Entity F1 Score',  'train_entity_f1',   'val_entity_f1',   'F1 Score'),
+    ]
+    
+    fig, axs = plt.subplots(2, 2, figsize=(14, 10), sharex=True)
+    axs = axs.flatten()
+    
+    for ax, (title, train_key, val_key, ylabel) in zip(axs, metrics_info):
+        for model_name, metric_list in models.items():
+            epochs     = [m['epoch']               for m in metric_list]
+            train_vals = [m[train_key]             for m in metric_list]
+            val_vals   = [m[val_key]               for m in metric_list]
+            
+            ax.plot(
+                epochs, train_vals,
+                label=f'{model_name} Train',
+                color=colors[model_name],
+                linestyle=line_styles['train']
+            )
+            ax.plot(
+                epochs, val_vals,
+                label=f'{model_name} Val',
+                color=colors[model_name],
+                linestyle=line_styles['val']
+            )
+        
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.grid(True)
+    
+    # Common X-label
+    for ax in axs[2:]:
+        ax.set_xlabel('Epoch')
+    
+    # Global legend and layout
+    handles, labels = axs[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=3, frameon=True)
+    fig.tight_layout(rect=[0, 0.05, 1, 1])
+    plt.show()

@@ -39,19 +39,24 @@ def train_epoch(model, loader, optimizer, scheduler, device):
     
     for bid, batch in (pbar:=tqdm(enumerate(loader, start=1), total=len(loader), desc="Training", leave=False)):
         optimizer.zero_grad()
+        # put data to device
         input_ids      = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
         intent_labels  = batch["intent_label"].to(device)
         slot_labels    = batch["slot_labels"].to(device)
 
+        # forward pass
         logits_i, logits_s = model(input_ids, attention_mask)
         
+        # flatten and mask slot predictions
         intent_pair = (logits_i, intent_labels)
-        slot_pair   = (
-            logits_s.view(-1, logits_s.size(-1)),
-            slot_labels.view(-1)
+        flat_mask        = batch.mask.view(-1) == 1
+        slot_pair  = (
+            logits_s.view(-1, logits_s.size(-1))[flat_mask],
+            slot_labels.view(-1)[flat_mask]
         )
         
+        # compute loss and update network 
         loss, loss_i, loss_s = multi_loss(intent_pair, slot_pair)
         loss.backward()
         optimizer.step()
@@ -143,7 +148,7 @@ def train_model(train_ds, val_ds, model, epochs=3):
     model.to(device)
 
     optimizer = AdamW(model.parameters(), lr=5e-5)
-    total_steps = len(train_loader) * epochs
+    total_steps  = len(train_loader) * epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=0, num_training_steps=total_steps
     )
