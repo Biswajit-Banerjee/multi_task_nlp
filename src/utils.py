@@ -116,7 +116,7 @@ def plot_comparison_metrics_subplot(transfer_metrics, finetune_metrics, custom_m
         ('Entity F1 Score',  'train_entity_f1',   'val_entity_f1',   'F1 Score'),
     ]
     
-    fig, axs = plt.subplots(2, 2, figsize=(14, 10), sharex=True)
+    fig, axs = plt.subplots(2, 2, figsize=(14, 10), sharex=False)
     axs = axs.flatten()
     
     for ax, (title, train_key, val_key, ylabel) in zip(axs, metrics_info):
