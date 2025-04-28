@@ -45,7 +45,7 @@ class CustomEncoder(nn.Module):
         super().__init__()
         self.d_model = d_model
         # token embedding + positional encoding
-        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.embeddings = nn.Embedding(vocab_size, d_model)
         self.pos_encoder = PositionalEncoding(d_model, dropout, max_len)
 
         # one layer of the Transformer encoder
@@ -85,7 +85,7 @@ class CustomEncoder(nn.Module):
             mask = None
 
         # embed tokens and scale
-        x = self.embedding(input_ids) * math.sqrt(self.d_model)
+        x = self.embeddings(input_ids) * math.sqrt(self.d_model)
         # add positional encoding
         x = self.pos_encoder(x)
 
@@ -116,8 +116,10 @@ class SentenceEncoder(nn.Module):
 
         if backbone_name != "custom":
             self.backbone = AutoModel.from_pretrained(backbone_name)
+            self.d_model = self.backbone.config.hidden_size
         else:
             self.backbone = CustomEncoder(d_model=embedding_dim)
+            self.d_model = embedding_dim
 
     def forward(self, input_ids, attention_mask):
         # Transformer outputs last_hidden_state of shape [B, T, H]
@@ -144,7 +146,7 @@ class ATISMultiTaskModel(nn.Module):
         self.encoder = encoder
         
         # extract d_model
-        hidden_dim = encoder.backbone.embedding.embedding_dim 
+        hidden_dim = encoder.d_model
 
         # projection for intent
         self.intent_head = nn.Linear(hidden_dim, n_intents)
