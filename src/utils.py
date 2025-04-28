@@ -15,7 +15,9 @@ def compute_slot_f1(preds, labels, mask):
     
     return f1_score(y_true, y_pred, average="micro")
 
-def plot_metrics(losses_data):
+import matplotlib.pyplot as plt
+
+def plot_metrics(losses_data, title=""):
     # Extract epoch & series
     epochs             = [m['epoch']               for m in losses_data]
     train_intent_loss  = [m['train_intent_loss']   for m in losses_data]
@@ -69,19 +71,20 @@ def plot_metrics(losses_data):
     ax = axs[1, 1]
     ax.plot(epochs, train_entity_f1, label='Train', color=colors['Train'])
     ax.plot(epochs, val_entity_f1,   label='Val',   color=colors['Val'])
-    ax.set_title('Entity F1 Score')
+    ax.set_title('Entity Accuracy')
     ax.set_xlabel('Epoch')
     ax.grid(True)
 
     # Global legend and title
     fig.legend(
         ['Train', 'Validation'],
-        loc='upper center',
+        loc='lower center',
         ncol=2,
         frameon=True,
         fontsize='x-large'
     )
-    # fig.suptitle('Training vs Validation Metrics', fontsize=16)
+    if title:
+        fig.suptitle(title, fontsize=12)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     plt.show()

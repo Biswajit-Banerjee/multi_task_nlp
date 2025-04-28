@@ -20,7 +20,15 @@ TEMPLATE = (
 )
 
 def collate_batch(batch):
-    return {k: torch.stack([b[k] for b in batch]) for k in batch[0]}
+    return {k: torch.stack([b[k] for b in batch]) for k in batch[0] if k != 'gt'}
+
+def multi_loss(intent_pair, slot_pair, l1=0.3, l2=0.7):
+    loss_i = nn.CrossEntropyLoss()(*intent_pair)
+    loss_s = nn.CrossEntropyLoss()(*slot_pair)
+    
+    loss = l1*loss_i + l2*loss_s
+    
+    return loss, loss_i, loss_s
 
 def train_epoch(model, loader, optimizer, scheduler, device):
     model.train()
@@ -37,12 +45,14 @@ def train_epoch(model, loader, optimizer, scheduler, device):
         slot_labels    = batch["slot_labels"].to(device)
 
         logits_i, logits_s = model(input_ids, attention_mask)
-        loss_i = nn.CrossEntropyLoss()(logits_i, intent_labels)
-        loss_s = nn.CrossEntropyLoss()(
+        
+        intent_pair = (logits_i, intent_labels)
+        slot_pair   = (
             logits_s.view(-1, logits_s.size(-1)),
             slot_labels.view(-1)
         )
-        loss = loss_i + loss_s
+        
+        loss, loss_i, loss_s = multi_loss(intent_pair, slot_pair)
         loss.backward()
         optimizer.step()
         scheduler.step()
@@ -89,14 +99,15 @@ def validate(model, loader, device):
             slot_labels    = batch["slot_labels"].to(device)
 
             logits_i, logits_s = model(input_ids, attention_mask)
-            loss_i = nn.CrossEntropyLoss()(logits_i, intent_labels)
-            loss_s = nn.CrossEntropyLoss()(
+            
+            intent_pair = (logits_i, intent_labels)
+            slot_pair   = (
                 logits_s.view(-1, logits_s.size(-1)),
                 slot_labels.view(-1)
             )
             
-            loss = (loss_i + loss_s)
-            
+            loss, loss_i, loss_s = multi_loss(intent_pair, slot_pair)
+                
             # Accumulate metrics
             running_loss   += loss.item()
             running_i_loss += loss_i.item()

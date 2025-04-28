@@ -148,8 +148,21 @@ class ATISMultiTaskModel(nn.Module):
 
         # projection for intent
         self.intent_head = nn.Linear(hidden_dim, n_intents)
+        
         # projection for entities/slots
-        self.slot_head = nn.Linear(hidden_dim, n_slots)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim,
+            nhead=8,
+            dim_feedforward=2048,
+            dropout=0.2,
+            activation='relu'
+        )
+        projection = nn.Linear(hidden_dim, n_slots)
+        
+        self.slot_head = nn.Sequential(
+            encoder_layer, 
+            projection
+        )
 
     def forward(self, input_ids, attention_mask):
         # Sentence-level embedding for intent
