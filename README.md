@@ -9,7 +9,7 @@ This repo show cases comparison between multiple strategies of training multi ta
 ## Requirements
 
 See `requirements.txt` for full list. At minimum:
-- Python 3.7+
+- Python 3.9+
 - torch >= 1.12.0
 - transformers >= 4.18.0
 - scikit-learn >= 1.0.0
