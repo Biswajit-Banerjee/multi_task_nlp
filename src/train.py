@@ -50,8 +50,8 @@ def train_epoch(model, loader, optimizer, scheduler, device):
         
         # flatten and mask slot predictions
         intent_pair = (logits_i, intent_labels)
-        flat_mask        = batch.mask.view(-1) == 1
-        slot_pair  = (
+        flat_mask   = attention_mask.view(-1) == 1
+        slot_pair   = (
             logits_s.view(-1, logits_s.size(-1))[flat_mask],
             slot_labels.view(-1)[flat_mask]
         )
